@@ -111,6 +111,9 @@ var system = (function (){
     }
 })();
 
+// Console management
+var stdin = process.openStdin();
+
 // Process management
 var spawn = require('child_process').spawn;
 
@@ -228,15 +231,23 @@ var SUPPORTED_ENGINES = {
 var ENGINE = system.env.CASPERJS_ENGINE || 'phantomjs';
 var ENGINE_ARGS = system.env.ENGINE_FLAGS && system.env.ENGINE_FLAGS.split(' ') || [];
 
+var BUFFER = '/tmp/casper.buffer';
+
 var CASPER_ARGS = [];
 var CASPER_PATH = fs.absolute(fs.pathJoin(fs.dirname(fs.scriptDir(system.args)), '..'));
 var SYS_ARGS = typeof phantom !== 'undefined' ? system.args.slice(1) : system.args.slice(2);
 var ENVIRONMENT = system.env;
 
-// retrieve the engine name
 for (var i = 0, l = SYS_ARGS.length; i < l; i++) {
+    // retrieve the engine name
     if (SYS_ARGS[i].substr(0, 9) === '--engine=') {
         ENGINE = SYS_ARGS[i].substring(9).toLowerCase();
+        break;
+    }
+
+    // retrieve buffer path
+    if (SYS_ARGS[i].substr(0, 9) === '--buffer=') {
+        BUFFER = SYS_ARGS[i].substring(9).toLowerCase();
         break;
     }
 }
@@ -292,15 +303,21 @@ var child = spawn(ENGINE_EXECUTABLE, CASPER_COMMAND.slice(1), {
 
 child.stdout.on('data', function (data) {
     'use strict';
-    system.stdout.write(data + "\n");
+    system.stdout.write(data);
 });
 
 child.stderr.on('data', function (data) {
     'use strict';
-    system.stderr.write(data + "\n");
+    system.stderr.write(data);
 });
 
 child.on('exit', function (code) {
     'use strict';
     system.exit(code);
+});
+
+stdin.on('data', function (data) {
+    'use strict';
+    var input = data.toString().trim();
+    fs.writeFileSync(BUFFER, input);
 });
