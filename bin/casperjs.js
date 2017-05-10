@@ -301,9 +301,27 @@ var child = spawn(ENGINE_EXECUTABLE, CASPER_COMMAND.slice(1), {
     'env': ENVIRONMENT
 });
 
+var writeFileSync = function writeFileSync(targetFilepath, html) {
+    try {
+        fs.writeFileSync(targetFilepath, html);
+    } catch(e) {
+        console.error(e.toString());
+    }
+};
+
 child.stdout.on('data', function (data) {
     'use strict';
-    system.stdout.write(data);
+    var output = data.toString();
+    var htmlMatch = output.match(/^html:([^:>]+)>(.*)/);
+    var targetFilepath;
+    var html;
+    if (htmlMatch) {
+        targetFilepath = htmlMatch[1];
+        html = htmlMatch[2];
+        writeFileSync(targetFilepath, html);
+    } else {
+        system.stdout.write(data);
+    }
 });
 
 child.stderr.on('data', function (data) {
